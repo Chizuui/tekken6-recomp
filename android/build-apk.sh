@@ -31,14 +31,20 @@ nm -D "$JNI_DIR/libmain.so" | grep -E " T SDL_main$" || { echo "libmain.so does 
 nm -D "$JNI_DIR/librexruntime.so" | grep " T JNI_OnLoad" || { echo "librexruntime.so does NOT export JNI_OnLoad" >&2; exit 1; }
 echo "SDL_main + JNI_OnLoad OK"
 
-export JAVA_HOME="$HOME/jdk17"
-export ANDROID_HOME="$HOME/Android/Sdk"
-export PATH="$HOME/gradle-8.7/bin:$JAVA_HOME/bin:$HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
+export JAVA_HOME="${JAVA_HOME:-$HOME/jdk17}"
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+GRADLE_BIN="${GRADLE_BIN:-$HOME/gradle-8.7/bin/gradle}"
+export PATH="$(dirname "$GRADLE_BIN"):$JAVA_HOME/bin:$HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 export JAVA_TOOL_OPTIONS="-Djava.net.preferIPv6Addresses=true -Duser.home=$HOME"
-export GRADLE_USER_HOME="$HOME/.gradle"
-export GRADLE_OPTS="-Xmx2g -Djava.net.preferIPv6Addresses=true -Dhttps.proxyHost=localhost -Dhttps.proxyPort=18080 -Dhttp.proxyHost=localhost -Dhttp.proxyPort=18080 -Dhttps.nonProxyHosts=localhost|127.0.0.1 -Dhttp.nonProxyHosts=localhost|127.0.0.1"
+export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$HOME/.gradle}"
+export GRADLE_OPTS="-Xmx2g -Djava.net.preferIPv6Addresses=true"
+# Local CONNECT proxy (sandbox only): add it when the proxy port is up,
+# so the same script works on a normal machine without one.
+if (echo > /dev/tcp/localhost/18080) 2>/dev/null; then
+  export GRADLE_OPTS="$GRADLE_OPTS -Dhttps.proxyHost=localhost -Dhttps.proxyPort=18080 -Dhttp.proxyHost=localhost -Dhttp.proxyPort=18080 -Dhttps.nonProxyHosts=localhost|127.0.0.1 -Dhttp.nonProxyHosts=localhost|127.0.0.1"
+fi
 
-"$HOME/gradle-8.7/bin/gradle" assembleDebug --no-daemon
+"$GRADLE_BIN" assembleDebug --no-daemon
 
 APK="app/build/outputs/apk/debug/app-debug.apk"
 echo "=== APK ==="

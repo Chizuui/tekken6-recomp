@@ -3,6 +3,82 @@
 Static recompiler project for the Xbox 360 release of Tekken 6. Game data and
 generated code come from a user-provided XEX and are kept out of version control.
 
+This branch adds an **Android port** — see [Android](#android) below. The PC
+builds (Windows/Linux/macOS) are unchanged.
+
+## Android
+
+Tekken 6 recompiled for ARM64 and packaged as an APK with a touch gamepad.
+Experimental: the APK builds and packages cleanly, but on-device play has
+not been verified yet.
+
+### What you need
+
+- An Android phone/tablet, ARM64 (arm64-v8a), Android 8.0 or later
+- Your own Xbox 360 Tekken 6 ISO (USA/Europe Rev 1; v0.0.0.1 also tested)
+- About 16 GB free during import (the 8 GB ISO copy is deleted after
+  extraction)
+
+### Install and play
+
+1. Install the APK (`app-debug.apk`).
+2. Tap **Import ISO** and pick your `.iso`. It is extracted on the phone
+   (a few minutes); the ISO copy is deleted afterwards to save space.
+3. Pick a resolution (Low 640x360, Medium 768x432, High 1024x576 — Low is
+   the default so the first boot is light) and tap **Play**.
+
+The on-screen gamepad is a full Xbox layout: D-pad + left/right analog
+sticks, A/B/X/Y, LB/RB, LT/RT, View/Guide/Menu, all in neutral white. It
+is multi-touch, so you can hold a direction while pressing an attack
+button, and it works together with a Bluetooth gamepad if one is
+connected. The FPS meter is on by default (there is no F3 key on a
+phone); tap the menu button on the pad to hide it. **Export Log** in the
+launcher shares the latest log for bug reports.
+
+Performance depends heavily on the phone. The reference Android port this
+shell is modeled on targets Snapdragon 8 Gen 1 and newer (Adreno 710+);
+weaker phones such as a MediaTek G85 or Snapdragon 720G are below that
+spec and may struggle.
+
+### Building the APK from source
+
+Needs the Android SDK with NDK 28.2, JDK 17, Gradle 8.7 and Ninja.
+Generate the guest code first (same as the Linux/Windows build, with the
+SDK's `rexglue codegen` tool), then configure for Android:
+
+```sh
+cmake -S . -B build/android-arm64 -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
+  -DCMAKE_BUILD_TYPE=Release -DTEKKEN6_USE_PREGENERATED_CODE=ON \
+  -DREXGLUE_USE_D3D12=OFF -DREXGLUE_USE_VULKAN=ON \
+  -DREXGLUE_ENABLE_TRACY=OFF -DREXGLUE_ENABLE_PERF_COUNTERS=OFF \
+  -DREXGLUE_RECOMP_DEBUG_INFO=none \
+  -DCMAKE_CXX_FLAGS="-include $PWD/cmake/windows-include/chrono_compat.hpp"
+cmake --build build/android-arm64 --target tekken6_main tekken6helper --parallel 2
+android/build-apk.sh
+```
+
+`android/build-apk.sh` stages the native libraries into the Gradle
+project and runs `assembleDebug`; the APK lands at
+`android/app/build/outputs/apk/debug/app-debug.apk` (debug-signed). It
+uses `JAVA_HOME`, `ANDROID_HOME` and `GRADLE_BIN` when set, and falls
+back to `$HOME/jdk17`, `$HOME/Android/Sdk` and `$HOME/gradle-8.7` —
+adjust them to your machine.
+
+### What changed for Android
+
+- ARM64 build of the runtime and the game (NDK 28): an aarch64 fiber
+  context shim, `main_android.h`, Bionic workarounds, SDL X11/Wayland off.
+- Android Vulkan surface (`ANativeWindow`) and a GPU plugin path that
+  resolves inside the APK's native library directory.
+- `libmain.so` (the game as a shared library with an `SDL_main` entry)
+  and `libtekken6helper.so` (ISO import via the SDK's GDFX parser + JNI).
+- Launcher activity (ISO import, resolution settings, log export) and a
+  virtual gamepad driver + overlay that present a synthetic Xbox
+  controller to the game.
+- Config and logs live under the app's writable user data directory.
+
 ## Windows build
 
 For a Linux-hosted Windows build, use an extracted LLVM-MinGW distribution.
@@ -317,3 +393,22 @@ the experimental framebuffer path, which does not require interlock.
 The launcher keeps user saves, shader caches, and crash reports in the package
 directory. Game files and generated recompilation sources are local inputs and
 must not be committed.
+
+## Credits
+
+- [mahmoud-mess/tekken6-recomp](https://github.com/mahmoud-mess/tekken6-recomp) —
+  the Tekken 6 recomp project this repository is based on. The Android port
+  on this branch is built on top of it.
+- [rexglue/rexglue-sdk](https://github.com/rexglue/rexglue-sdk) — the ReXGlue
+  runtime and recompiler SDK. The Android SDK patches live in the fork
+  [Chizuui/rexglue-sdk](https://github.com/Chizuui/rexglue-sdk) (`android`
+  branch), which this branch's submodule points to.
+- [SansNope/UnleashedRecomp-Android](https://github.com/SansNope/UnleashedRecomp-Android) —
+  pattern reference for the Android shell (launcher, touch controls,
+  driver approach). No code was taken from it.
+- [SDL](https://www.libsdl.org/) (SDL3, bundled with the SDK) — windowing,
+  input and the Android activity.
+
+Tekken 6 is a game by Bandai Namco. No game data, ISO, XEX or generated code
+is distributed here — bring your own disc image. This project is not
+affiliated with or endorsed by Bandai Namco.
