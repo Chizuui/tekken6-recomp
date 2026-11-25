@@ -1,5 +1,5 @@
 [submodule "third_party/rexglue-sdk"]
 	path = third_party/rexglue-sdk
-	url = https://github.com/rexglue/rexglue-sdk.git
+	url = https://github.com/Chizuui/rexglue-sdk.git
 	ignore = dirty
 

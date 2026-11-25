@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tekken 6</string>
+    <string name="status_no_game">No game data yet. Import your Tekken 6 ISO first.</string>
+    <string name="resolution_label">Resolution (internal render resolution)</string>
+    <string name="import_iso">Import ISO</string>
+    <string name="play">Play</string>
+    <string name="export_log">Export Log</string>
+    <string name="import_note">Import needs about 16 GB free: the ISO copy plus the extracted game. The ISO copy is deleted after a successful import.</string>
+</resources>

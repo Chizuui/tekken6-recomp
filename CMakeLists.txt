@@ -90,6 +90,20 @@ if(WIN32)
     target_link_options(tekken6 PRIVATE -municode)
 endif()
 rexglue_setup_target(tekken6 GPU_PLUGINS xenos)
+if(ANDROID)
+    # Android ships the game as libmain.so (loaded by SDLActivity); the
+    # executable target above cannot run on a phone.
+    add_library(tekken6_main SHARED src/main.cpp src/tekken6_guest_hooks.cpp src/internal_resolution.cpp)
+    set_target_properties(tekken6_main PROPERTIES OUTPUT_NAME "main")
+    rexglue_setup_target(tekken6_main GPU_PLUGINS xenos)
+    add_dependencies(tekken6_main tekken6_stage_gpu_plugin)
+
+    # Small helper library for the launcher (ISO extract + env vars).
+    # Links the runtime for the GDFX disc reader; does not start the game.
+    add_library(tekken6helper SHARED src/android/iso_extract.cpp src/android/tekken6_helper_jni.cpp)
+    target_include_directories(tekken6helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(tekken6helper PRIVATE rex::runtime)
+endif()
 # Stage the dynamically loaded GPU plugin whenever the host target is built.
 add_custom_target(tekken6_stage_gpu_plugin
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
